@@ -1,0 +1,20 @@
+{
+  "name": "Subscription Expense Tracker",
+  "short_name": "SubTracker",
+  "description": "แอปติดตามค่าสมัครสมาชิกรายเดือนและรายปีแบบออฟไลน์ เก็บข้อมูลในเครื่อง 100%",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b0f14",
+  "theme_color": "#151b23",
+  "orientation": "portrait-primary",
+  "lang": "th",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b0f14'/%3E%3Crect x='24' y='24' width='464' height='464' rx='92' fill='%23151b23' stroke='%234db6ac' stroke-width='16'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='260' font-weight='bold' fill='%234db6ac'%3E%E0%B8%BF%3C/text%3E%3C/svg%3E",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

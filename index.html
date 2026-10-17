@@ -1,0 +1,2056 @@
+<!DOCTYPE html>
+<html lang="th" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#151b23">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SubTracker">
+  <meta name="description" content="ระบบรวบรวมและติดตามค่าสมัครสมาชิกรายเดือนแบบออฟไลน์ เก็บข้อมูลในอุปกรณ์ 100%">
+
+  <title>Subscription Expense Tracker (PWA Offline-First)</title>
+
+  <!-- ลิงก์ไปยังไฟล์ Web App Manifest -->
+  <link rel="manifest" href="./manifest.json">
+
+  <!-- ไอคอนแอปแบบ Embedded SVG (ไม่ต้องอัปโหลดไฟล์รูปแยก) -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%230b0f14'/%3E%3Crect x='24' y='24' width='464' height='464' rx='92' fill='%23151b23' stroke='%234db6ac' stroke-width='16'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='260' font-weight='bold' fill='%234db6ac'%3E%E0%B8%BF%3C/text%3E%3C/svg%3E">
+  <link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='112' fill='%23151b23'/%3E%3Ctext x='50%25' y='56%25' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='260' font-weight='bold' fill='%234db6ac'%3E%E0%B8%BF%3C/text%3E%3C/svg%3E">
+
+  <style>
+    :root {
+      --bg-main: #0b0f14;
+      --bg-surface: #151b23;
+      --bg-elevated: #1e2631;
+      --bg-input: #0d1117;
+      --border-color: #2f3844;
+      --text-primary: #f0f6fc;
+      --text-secondary: #9198a1;
+      --accent-teal: #4db6ac;
+      --accent-teal-hover: #80cbc4;
+      --accent-teal-bg: rgba(77, 182, 172, 0.14);
+      --accent-blue: #64b5f6;
+      --accent-blue-bg: rgba(100, 181, 246, 0.14);
+      --danger: #ff7b72;
+      --danger-bg: rgba(255, 123, 114, 0.15);
+      --success: #56d364;
+      --success-bg: rgba(86, 211, 100, 0.15);
+      --warning: #e3b341;
+      --warning-bg: rgba(227, 179, 65, 0.15);
+      --info: #79c0ff;
+      --info-bg: rgba(121, 192, 255, 0.15);
+      --radius-lg: 14px;
+      --radius-md: 10px;
+      --radius-sm: 6px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans Thai", sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-primary);
+      line-height: 1.55;
+      min-height: 100vh;
+      padding-bottom: 95px;
+    }
+
+    /* Top App Bar */
+    .app-header {
+      background-color: rgba(21, 27, 35, 0.94);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      padding: 14px 20px;
+    }
+
+    .header-inner {
+      max-width: 1040px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: var(--accent-teal-bg);
+      border: 1px solid var(--accent-teal);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+      color: var(--accent-teal);
+      font-weight: 700;
+    }
+
+    .brand-text h1 {
+      font-size: 1.12rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pwa-status-pill {
+      font-size: 0.68rem;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: var(--success-bg);
+      color: var(--success);
+      border: 1px solid rgba(86, 211, 100, 0.35);
+      font-weight: 600;
+    }
+
+    .brand-text span {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
+
+    .nav-bar {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .nav-item {
+      background: var(--bg-elevated);
+      color: var(--text-secondary);
+      border: 1px solid var(--border-color);
+      padding: 8px 14px;
+      border-radius: var(--radius-md);
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .nav-item:hover {
+      color: var(--text-primary);
+      border-color: var(--text-secondary);
+    }
+
+    .nav-item.active {
+      background: var(--accent-teal);
+      color: #041f1c;
+      border-color: var(--accent-teal);
+    }
+
+    #btn-install-pwa {
+      display: none;
+      background: var(--accent-blue-bg);
+      color: var(--accent-blue);
+      border: 1px solid var(--accent-blue);
+    }
+
+    /* Main Container */
+    .container {
+      max-width: 1040px;
+      margin: 24px auto;
+      padding: 0 16px;
+    }
+
+    .view-section {
+      display: none;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    /* Cards & Layout */
+    .card {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .card-sub {
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+
+    /* Month Switcher */
+    .month-switcher {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 12px 18px;
+      margin-bottom: 18px;
+    }
+
+    .month-center {
+      text-align: center;
+    }
+
+    .month-label {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent-teal-hover);
+    }
+
+    /* Currency Summary Box */
+    .metric-box {
+      background-color: var(--bg-elevated);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .metric-box.expected {
+      border-left: 4px solid var(--accent-teal);
+    }
+
+    .metric-box.actual {
+      background-color: var(--accent-blue-bg);
+      border-color: rgba(100, 181, 246, 0.35);
+      border-left: 4px solid var(--accent-blue);
+    }
+
+    .metric-title {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .metric-amount {
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: 0.2px;
+    }
+
+    .metric-box.actual .metric-amount {
+      color: var(--accent-blue);
+    }
+
+    /* Status & Payment Badges (Color + Icon + Text) */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .status-ACTIVE { background: var(--success-bg); color: var(--success); border: 1px solid rgba(86, 211, 100, 0.3); }
+    .status-TRIAL { background: var(--info-bg); color: var(--info); border: 1px solid rgba(121, 192, 255, 0.3); }
+    .status-PAUSED { background: var(--warning-bg); color: var(--warning); border: 1px solid rgba(227, 179, 65, 0.3); }
+    .status-CANCELLED { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(255, 123, 114, 0.3); }
+    .status-EXPIRED { background: var(--bg-elevated); color: var(--text-secondary); border: 1px solid var(--border-color); }
+
+    .pay-badge-paid { background: var(--accent-blue-bg); color: var(--accent-blue); border: 1px solid rgba(100, 181, 246, 0.3); }
+    .pay-badge-unpaid { background: var(--bg-main); color: var(--text-secondary); border: 1px solid var(--border-color); }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: var(--radius-md);
+      border: 1px solid transparent;
+      font-size: 0.9rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--accent-teal);
+      color: #041f1c;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--accent-teal-hover);
+    }
+
+    .btn-secondary {
+      background-color: var(--bg-elevated);
+      color: var(--text-primary);
+      border-color: var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--text-secondary);
+    }
+
+    .btn-danger {
+      background-color: var(--danger-bg);
+      color: var(--danger);
+      border-color: rgba(255, 123, 114, 0.4);
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.8rem;
+    }
+
+    /* Form Controls */
+    .form-field {
+      margin-bottom: 14px;
+    }
+
+    .form-field label {
+      display: block;
+      font-size: 0.84rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background-color: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 10px 12px;
+      border-radius: var(--radius-md);
+      font-size: 0.94rem;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent-teal);
+      box-shadow: 0 0 0 2px rgba(77, 182, 172, 0.25);
+    }
+
+    .alert-error {
+      background-color: var(--danger-bg);
+      color: var(--danger);
+      border: 1px solid rgba(255, 123, 114, 0.4);
+      padding: 12px 14px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      display: none;
+      font-size: 0.9rem;
+    }
+
+    .empty-box {
+      text-align: center;
+      padding: 36px 20px;
+      border: 1px dashed var(--border-color);
+      border-radius: var(--radius-lg);
+      color: var(--text-secondary);
+    }
+
+    .empty-box h3 {
+      color: var(--text-primary);
+      font-size: 1.05rem;
+      margin-bottom: 6px;
+    }
+
+    /* Modals */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.78);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 250;
+      padding: 16px;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .modal-box {
+      background-color: var(--bg-surface);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 480px;
+      padding: 20px;
+    }
+
+    /* Floating Action Button */
+    .fab {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background-color: var(--accent-teal);
+      color: #041f1c;
+      border: none;
+      border-radius: 999px;
+      padding: 14px 22px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+      z-index: 90;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Toast */
+    #toast-banner {
+      position: fixed;
+      bottom: 84px;
+      right: 24px;
+      background-color: var(--bg-elevated);
+      color: var(--accent-teal-hover);
+      border: 1px solid var(--accent-teal);
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      font-weight: 600;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
+      display: none;
+      z-index: 300;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-inner">
+      <div class="brand">
+        <div class="brand-icon">฿</div>
+        <div class="brand-text">
+          <h1>
+            Subscription Tracker
+            <span id="network-badge" class="pwa-status-pill">● Offline-Ready</span>
+          </h1>
+          <span>ข้อมูลเก็บในเครื่อง 100% (IndexedDB)</span>
+        </div>
+      </div>
+      <nav class="nav-bar">
+        <button class="nav-item active" id="nav-dashboard" onclick="App.navigate('dashboard')">แดชบอร์ด</button>
+        <button class="nav-item" id="nav-list" onclick="App.navigate('list')">รายการสมาชิก</button>
+        <button class="nav-item" id="nav-form" onclick="App.openCreateForm()">+ เพิ่มสมาชิก</button>
+        <button class="nav-item" id="nav-settings" onclick="App.navigate('settings')">ตั้งค่า & CSV</button>
+        <button class="nav-item" id="btn-install-pwa" onclick="PWA.promptInstall()">📲 ติดตั้งแอป</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- SCREEN 1: DASHBOARD -->
+    <section id="view-dashboard" class="view-section active">
+      <div class="month-switcher">
+        <button class="btn btn-secondary btn-sm" onclick="App.shiftMonth(-1)">&#9664; เดือนก่อนหน้า</button>
+        <div class="month-center">
+          <div id="dash-month-title" class="month-label">มกราคม 2026</div>
+          <button class="btn btn-secondary btn-sm" style="margin-top:4px;padding:2px 10px;font-size:0.74rem;" onclick="App.jumpToTodayMonth()">กลับเดือนปัจจุบัน</button>
+        </div>
+        <button class="btn btn-secondary btn-sm" onclick="App.shiftMonth(1)">เดือนถัดไป &#9654;</button>
+      </div>
+
+      <div id="dash-currency-summaries"></div>
+
+      <div class="card">
+        <div class="section-header">
+          <div>
+            <div id="dash-scheduled-title" class="section-title">กำหนดการเรียกเก็บในเดือนนี้ (0 รายการ)</div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);">แสดงยอดเรียกเก็บตามกำหนดจริงในเดือนปฏิทิน (ไม่นำค่าสมาชิกรายปีมาหารเฉลี่ยรายเดือน)</div>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="App.openCreateForm()">+ เพิ่มสมาชิก</button>
+        </div>
+        <div id="dash-scheduled-container"></div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">
+          <div>
+            <div id="dash-actual-title" class="section-title">ประวัติการชำระเงินจริงในเดือนนี้ (0 รายการ)</div>
+            <div style="font-size:0.78rem;color:var(--text-secondary);">อ้างอิงตามวันที่ชำระจริง (paid_at) ที่คุณบันทึกไว้ แยกจากยอดคาดการณ์</div>
+          </div>
+        </div>
+        <div id="dash-actual-container"></div>
+      </div>
+    </section>
+
+    <!-- SCREEN 2: SUBSCRIPTION LIST -->
+    <section id="view-list" class="view-section">
+      <div class="card">
+        <div class="section-header">
+          <div class="section-title">ค้นหา กรอง และเรียงลำดับสมาชิก</div>
+          <button class="btn btn-secondary btn-sm" onclick="App.resetListFilters()">ล้างตัวกรองทั้งหมด</button>
+        </div>
+        <div class="grid-2" style="margin-bottom:12px;">
+          <input type="text" id="list-search" placeholder="ค้นหาตามชื่อบริการ..." oninput="App.renderList()">
+          <select id="list-sort" onchange="App.renderList()">
+            <option value="NEXT_ASC">เรียงตาม: วันเรียกเก็บถัดไป (ใกล้สุดก่อน)</option>
+            <option value="NEXT_DESC">เรียงตาม: วันเรียกเก็บถัดไป (ไกลสุดก่อน)</option>
+            <option value="PRICE_ASC">เรียงตาม: ราคา (น้อยไปมาก)</option>
+            <option value="PRICE_DESC">เรียงตาม: ราคา (มากไปน้อย)</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <select id="list-filter-category" onchange="App.renderList()">
+            <option value="">กรองหมวดหมู่: ทุกหมวดหมู่</option>
+          </select>
+          <select id="list-filter-status" onchange="App.renderList()">
+            <option value="">กรองสถานะ: ทุกสถานะ</option>
+            <option value="ACTIVE">ใช้งานอยู่ (ACTIVE)</option>
+            <option value="TRIAL">ทดลองใช้ (TRIAL)</option>
+            <option value="PAUSED">หยุดชั่วคราว (PAUSED)</option>
+            <option value="CANCELLED">ยกเลิกแล้ว (CANCELLED)</option>
+            <option value="EXPIRED">หมดอายุ (EXPIRED)</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="list-items-container"></div>
+    </section>
+
+    <!-- SCREEN 3: ADD / EDIT SUBSCRIPTION -->
+    <section id="view-form" class="view-section">
+      <div class="card">
+        <div class="section-header">
+          <div id="form-header-title" class="section-title">เพิ่มสมาชิกใหม่</div>
+          <button class="btn btn-secondary btn-sm" onclick="App.navigate('dashboard')">ยกเลิก</button>
+        </div>
+
+        <div id="form-error-box" class="alert-error"></div>
+
+        <form id="sub-form" onsubmit="App.handleSubscriptionSubmit(event)">
+          <input type="hidden" id="f-id">
+
+          <div class="form-field">
+            <label for="f-name">ชื่อบริการ * (กรอกด้วยตนเอง)</label>
+            <input type="text" id="f-name" placeholder="ระบุชื่อบริการด้วยตนเอง...">
+          </div>
+
+          <div class="grid-2">
+            <div class="form-field">
+              <label for="f-amount">ราคาต่อรอบบิล * (ทศนิยมไม่เกิน 2 ตำแหน่ง)</label>
+              <input type="text" id="f-amount" inputmode="decimal" placeholder="เช่น 300 หรือ 1200.00">
+            </div>
+            <div class="form-field">
+              <label for="f-currency">สกุลเงิน *</label>
+              <select id="f-currency">
+                <option value="THB">THB - บาทไทย</option>
+                <option value="USD">USD - ดอลลาร์สหรัฐ</option>
+                <option value="EUR">EUR - ยูโร</option>
+                <option value="JPY">JPY - เยนญี่ปุ่น</option>
+                <option value="GBP">GBP - ปอนด์สเตอร์ลิง</option>
+                <option value="SGD">SGD - ดอลลาร์สิงคโปร์</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-field">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+              <label for="f-category" style="margin:0;">หมวดหมู่ (สร้างเองได้)</label>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="App.openCategoryModal()">+ สร้างหมวดหมู่ใหม่</button>
+            </div>
+            <select id="f-category">
+              <option value="">-- ไม่ระบุหมวดหมู่ --</option>
+            </select>
+          </div>
+
+          <div class="form-field">
+            <label for="f-cycle-type">รอบการเรียกเก็บเงิน *</label>
+            <select id="f-cycle-type" onchange="App.handleCycleTypeChange()">
+              <option value="MONTHLY">รายเดือน (Monthly - ทุก 1 เดือน)</option>
+              <option value="WEEKLY">รายสัปดาห์ (Weekly - ทุก 1 สัปดาห์)</option>
+              <option value="QUARTERLY">ทุก 3 เดือน (Quarterly)</option>
+              <option value="SEMI_ANNUALLY">ทุก 6 เดือน (Semi-Annually)</option>
+              <option value="ANNUALLY">รายปี (Annually - ทุก 1 ปี)</option>
+              <option value="CUSTOM">รอบกำหนดเอง (Custom Interval)</option>
+            </select>
+          </div>
+
+          <div id="f-custom-box" class="card-sub" style="display:none;">
+            <div style="font-size:0.85rem;font-weight:700;margin-bottom:10px;color:var(--accent-teal);">ตั้งค่ารอบเรียกเก็บแบบกำหนดเอง</div>
+            <div class="grid-2">
+              <div class="form-field" style="margin:0;">
+                <label for="f-interval-value">ระยะเวลา (interval_value: 1 - 999) *</label>
+                <input type="number" id="f-interval-value" min="1" max="999" value="45" oninput="App.autoCalculateNextDate()">
+              </div>
+              <div class="form-field" style="margin:0;">
+                <label for="f-interval-unit">หน่วยเวลา (interval_unit) *</label>
+                <select id="f-interval-unit" onchange="App.autoCalculateNextDate()">
+                  <option value="DAYS">วัน (DAYS)</option>
+                  <option value="WEEKS">สัปดาห์ (WEEKS)</option>
+                  <option value="MONTHS">เดือน (MONTHS)</option>
+                  <option value="YEARS">ปี (YEARS)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-field">
+              <label for="f-start-date">วันเริ่มต้นสมัคร (start_date) *</label>
+              <input type="date" id="f-start-date" onchange="App.autoCalculateNextDate()">
+            </div>
+            <div class="form-field">
+              <label for="f-next-date">วันเรียกเก็บเงินครั้งถัดไป (next_billing_date) *</label>
+              <input type="date" id="f-next-date">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-field">
+              <label for="f-status">สถานะสมาชิก (แยกจากสถานะการชำระเงิน) *</label>
+              <select id="f-status">
+                <option value="ACTIVE">ใช้งานอยู่ (ACTIVE)</option>
+                <option value="TRIAL">ทดลองใช้ (TRIAL)</option>
+                <option value="PAUSED">หยุดชั่วคราว (PAUSED)</option>
+                <option value="CANCELLED">ยกเลิกแล้ว (CANCELLED)</option>
+                <option value="EXPIRED">หมดอายุ (EXPIRED)</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label for="f-trial-end">วันสิ้นสุดทดลองใช้ฟรี (trial_end_date)</label>
+              <input type="date" id="f-trial-end">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-field">
+              <label for="f-cancel-date">วันที่ยกเลิก (cancellation_date)</label>
+              <input type="date" id="f-cancel-date">
+            </div>
+            <div class="form-field">
+              <label for="f-access-end">วันสิ้นสุดสิทธิ์ใช้งาน (access_end_date)</label>
+              <input type="date" id="f-access-end">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="f-note">หมายเหตุ (note)</label>
+            <textarea id="f-note" rows="2" placeholder="ระบุรายละเอียดเพิ่มเติม (ถ้ามี)..."></textarea>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width:100%;padding:12px;font-size:1rem;">บันทึกข้อมูลสมาชิก</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- SCREEN 4: SUBSCRIPTION DETAIL & PAYMENT HISTORY -->
+    <section id="view-detail" class="view-section">
+      <div id="detail-container"></div>
+    </section>
+
+    <!-- SCREEN 5: SETTINGS, PWA INSTALL, CSV EXPORT & SELF-TEST -->
+    <section id="view-settings" class="view-section">
+      <div class="card">
+        <div class="section-title" style="margin-bottom:8px;">สถานะแอปพลิเคชัน (PWA & Offline Storage)</div>
+        <p id="pwa-status-text" style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:12px;">
+          กำลังตรวจสอบสถานะ Service Worker...
+        </p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button class="btn btn-primary" id="btn-settings-install" style="display:none;" onclick="PWA.promptInstall()">📲 ติดตั้งแอปลงบนหน้าจอมือถือ/คอมพิวเตอร์</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title" style="margin-bottom:12px;">ตั้งค่าระบบและสกุลเงินเริ่มต้น</div>
+        <div class="grid-2">
+          <div class="form-field">
+            <label for="set-currency">สกุลเงินเริ่มต้น (สำหรับฟอร์มสร้างสมาชิกใหม่)</label>
+            <select id="set-currency" onchange="App.updateDefaultCurrency(this.value)">
+              <option value="THB">THB (บาทไทย)</option>
+              <option value="USD">USD (ดอลลาร์สหรัฐ)</option>
+              <option value="EUR">EUR (ยูโร)</option>
+              <option value="JPY">JPY (เยนญี่ปุ่น)</option>
+              <option value="GBP">GBP (ปอนด์สเตอร์ลิง)</option>
+              <option value="SGD">SGD (ดอลลาร์สิงคโปร์)</option>
+            </select>
+          </div>
+          <div class="form-field">
+            <label for="set-month-rule">กติกาสำหรับวันที่ 29–31 ในเดือนที่ไม่มีวันตรงกัน</label>
+            <select id="set-month-rule" onchange="App.updateMonthEndRule(this.value)">
+              <option value="CLAMP">CLAMP: ปัดเป็นวันสิ้นเดือนนั้น (เช่น 28/29 ก.พ.) และเดือนถัดไปกลับสู่วันตั้งต้น (Default)</option>
+              <option value="ROLL">ROLL: ปัดข้ามไปเป็นวันที่ 1 ของเดือนถัดไป</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-title" style="margin-bottom:8px;">ส่งออกข้อมูลสำรอง (Offline CSV Export)</div>
+        <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:14px;">
+          ส่งออกข้อมูลสมาชิก หมวดหมู่ และประวัติการชำระเงินทั้งหมดเป็นไฟล์ CSV มาตรฐาน (เข้ารหัส UTF-8 with BOM เปิดใน Microsoft Excel ได้โดยภาษาไทยไม่เพี้ยน และรักษาความสัมพันธ์ผ่าน <code>subscription_id</code>)
+        </p>
+        <button class="btn btn-primary" onclick="App.exportCsvBackup()">ดาวน์โหลดไฟล์ CSV ลงเครื่อง</button>
+      </div>
+
+      <div class="card">
+        <div class="section-title" style="margin-bottom:8px;">ตรวจสอบความถูกต้องของเอนจินคำนวณ (Automated Verification Suite)</div>
+        <p style="font-size:0.88rem;color:var(--text-secondary);margin-bottom:14px;">
+          กดปุ่มด้านล่างเพื่อรัน Unit Tests ตรวจสอบ Acceptance Criteria โดยไม่กระทบข้อมูลจริงในฐานข้อมูลของคุณ
+        </p>
+        <button class="btn btn-secondary" onclick="App.runSelfDiagnostics()">รันชุดทดสอบความถูกต้อง (Run Self-Tests)</button>
+        <pre id="test-output" style="margin-top:12px;background:var(--bg-input);padding:12px;border-radius:8px;font-size:0.82rem;color:var(--success);display:none;white-space:pre-wrap;"></pre>
+      </div>
+    </section>
+
+  </main>
+
+  <button class="fab" onclick="App.openCreateForm()">+ เพิ่มสมาชิก</button>
+
+  <!-- MODAL 1: CREATE CUSTOM CATEGORY -->
+  <div id="modal-category" class="modal-overlay">
+    <div class="modal-box">
+      <div class="section-title" style="margin-bottom:12px;">สร้างหมวดหมู่ใหม่</div>
+      <div class="form-field">
+        <label for="cat-input-name">ชื่อหมวดหมู่ *</label>
+        <input type="text" id="cat-input-name" placeholder="เช่น สตรีมมิง, คลาวด์และซอฟต์แวร์, อินเทอร์เน็ต">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" onclick="App.closeModal('modal-category')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="App.createNewCategory()">บันทึกหมวดหมู่</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: ADD / EDIT PAYMENT HISTORY -->
+  <div id="modal-payment" class="modal-overlay">
+    <div class="modal-box">
+      <div id="pay-modal-title" class="section-title" style="margin-bottom:12px;">บันทึกการชำระเงินจริง</div>
+      <input type="hidden" id="p-id">
+      <input type="hidden" id="p-sub-id">
+
+      <div class="grid-2">
+        <div class="form-field">
+          <label for="p-amount">ยอดที่ชำระจริง (amount_paid) *</label>
+          <input type="text" id="p-amount" inputmode="decimal">
+        </div>
+        <div class="form-field">
+          <label for="p-currency">สกุลเงิน (currency) *</label>
+          <input type="text" id="p-currency" readonly>
+        </div>
+      </div>
+
+      <div class="form-field">
+        <label for="p-date">วันที่ชำระจริง (paid_at) *</label>
+        <input type="date" id="p-date">
+      </div>
+
+      <div class="form-field">
+        <label for="p-note">หมายเหตุการชำระ (note)</label>
+        <input type="text" id="p-note" placeholder="เช่น ชำระผ่าน QR PromptPay">
+      </div>
+
+      <p style="font-size:0.78rem;color:var(--text-secondary);margin-bottom:14px;">
+        * กฎของระบบ: การบันทึกการชำระจะไม่ถูกนำกลับไปบวกซ้ำกับยอดคาดการณ์ และจะไม่สร้างหรือเลื่อนรอบบิลใหม่อัตโนมัติ
+      </p>
+
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" onclick="App.closeModal('modal-payment')">ยกเลิก</button>
+        <button class="btn btn-primary" onclick="App.savePaymentHistory()">บันทึกข้อมูล</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 3: CONFIRMATION DIALOG -->
+  <div id="modal-confirm" class="modal-overlay">
+    <div class="modal-box">
+      <div id="confirm-header" class="section-title" style="color:var(--danger);margin-bottom:8px;">ยืนยันการลบข้อมูล</div>
+      <p id="confirm-body" style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:18px;"></p>
+      <div style="display:flex;justify-content:flex-end;gap:8px;">
+        <button class="btn btn-secondary" onclick="App.closeModal('modal-confirm')">ยกเลิก</button>
+        <button id="confirm-yes-btn" class="btn btn-danger">ยืนยันการลบ</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-banner"></div>
+
+  <script>
+    /**
+     * ========================================================================
+     * MODULE 0: PWA CONTROLLER (Service Worker Registration & Install Prompt)
+     * ========================================================================
+     */
+    const PWA = {
+      deferredPrompt: null,
+
+      init() {
+        // 1. ตรวจสอบสถานะออนไลน์/ออฟไลน์
+        const updateNetworkBadge = () => {
+          const badge = document.getElementById('network-badge');
+          if (!badge) return;
+          if (navigator.onLine) {
+            badge.textContent = '● Online (Local DB)';
+            badge.style.color = 'var(--success)';
+          } else {
+            badge.textContent = '● Offline Mode';
+            badge.style.color = 'var(--warning)';
+          }
+        };
+        window.addEventListener('online', updateNetworkBadge);
+        window.addEventListener('offline', updateNetworkBadge);
+        updateNetworkBadge();
+
+        // 2. ดักจับ Event สำหรับแสดงปุ่มติดตั้งแอปลงเครื่อง (Android / Desktop Chrome / Edge)
+        window.addEventListener('beforeinstallprompt', (e) => {
+          e.preventDefault();
+          this.deferredPrompt = e;
+          document.getElementById('btn-install-pwa').style.display = 'inline-flex';
+          document.getElementById('btn-settings-install').style.display = 'inline-flex';
+        });
+
+        window.addEventListener('appinstalled', () => {
+          this.deferredPrompt = null;
+          document.getElementById('btn-install-pwa').style.display = 'none';
+          document.getElementById('btn-settings-install').style.display = 'none';
+          App.showToast('ติดตั้งแอปลงบนอุปกรณ์เรียบร้อยแล้ว!');
+        });
+
+        // 3. ลงทะเบียน Service Worker (./sw.js)
+        const statusEl = document.getElementById('pwa-status-text');
+        if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1')) {
+          navigator.serviceWorker.register('./sw.js')
+            .then((reg) => {
+              if (statusEl) {
+                statusEl.textContent = `✔ ระบบ PWA และ Offline Cache ทำงานสมบูรณ์ (Scope: ${reg.scope}) สามารถเปิดใช้งานได้แม้ปิดอินเทอร์เน็ต`;
+              }
+            })
+            .catch((err) => {
+              if (statusEl) {
+                statusEl.textContent = `หมายเหตุ: Service Worker รอการอัปโหลดคู่กับไฟล์ sw.js บนโฮสติ้ง (${err.message})`;
+              }
+            });
+        } else {
+          if (statusEl) {
+            statusEl.textContent = 'ขณะนี้เปิดใช้งานในโหมดไฟล์ตรง (Local File) ฐานข้อมูล IndexedDB ทำงานออฟไลน์ได้ 100% หากอัปโหลดขึ้นโฮสติ้ง HTTPS จะสามารถกดติดตั้งเป็นไอคอนแอปบนมือถือได้';
+          }
+        }
+      },
+
+      async promptInstall() {
+        if (!this.deferredPrompt) return;
+        this.deferredPrompt.prompt();
+        await this.deferredPrompt.userChoice;
+        this.deferredPrompt = null;
+        document.getElementById('btn-install-pwa').style.display = 'none';
+        document.getElementById('btn-settings-install').style.display = 'none';
+      }
+    };
+
+    /**
+     * ========================================================================
+     * MODULE 1: MONEY CONVERTER (Integer Minor Units - No Floating Point Math)
+     * ========================================================================
+     */
+    const MoneyConverter = {
+      parseToMinorUnits(rawInput) {
+        if (rawInput === null || rawInput === undefined) return null;
+        const cleaned = String(rawInput).trim().replace(/,/g, '');
+        if (!/^\d+(\.\d{1,2})?$/.test(cleaned)) return null;
+        const parts = cleaned.split('.');
+        const major = parseInt(parts[0], 10);
+        const minorStr = ((parts[1] || '') + '00').slice(0, 2);
+        const minor = parseInt(minorStr, 10);
+        return (major * 100) + minor;
+      },
+
+      formatFromMinorUnits(minorUnits, currency = '') {
+        const isNegative = minorUnits < 0;
+        const absVal = Math.abs(minorUnits);
+        const major = Math.floor(absVal / 100);
+        const minor = String(absVal % 100).padStart(2, '0');
+        const majorFormatted = major.toLocaleString('th-TH');
+        return `${isNegative ? '-' : ''}${majorFormatted}.${minor}${currency ? ' ' + currency : ''}`;
+      },
+
+      toPlainDecimalString(minorUnits) {
+        const major = Math.floor(minorUnits / 100);
+        const minor = minorUnits % 100;
+        return minor === 0 ? String(major) : `${major}.${String(minor).padStart(2, '0')}`;
+      }
+    };
+
+    /**
+     * ========================================================================
+     * MODULE 2: BILLING CALCULATOR (Deterministic Calendar Schedule Engine)
+     * ========================================================================
+     */
+    const BillingCalculator = {
+      parseDate(ymd) {
+        const [y, m, d] = ymd.split('-').map(Number);
+        return { year: y, month: m, day: d };
+      },
+
+      formatDate({ year, month, day }) {
+        return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+      },
+
+      daysInMonth(year, month) {
+        return new Date(Date.UTC(year, month, 0)).getUTCDate();
+      },
+
+      normalizeInterval(cycleType, customVal, customUnit) {
+        switch (cycleType) {
+          case 'WEEKLY': return { intervalValue: 1, intervalUnit: 'WEEKS' };
+          case 'MONTHLY': return { intervalValue: 1, intervalUnit: 'MONTHS' };
+          case 'QUARTERLY': return { intervalValue: 3, intervalUnit: 'MONTHS' };
+          case 'SEMI_ANNUALLY': return { intervalValue: 6, intervalUnit: 'MONTHS' };
+          case 'ANNUALLY': return { intervalValue: 1, intervalUnit: 'YEARS' };
+          case 'CUSTOM':
+          default: {
+            const parsed = parseInt(customVal, 10);
+            const safeVal = Number.isFinite(parsed) ? Math.min(999, Math.max(1, parsed)) : 1;
+            return { intervalValue: safeVal, intervalUnit: customUnit || 'DAYS' };
+          }
+        }
+      },
+
+      advanceFromAnchor(anchorDateStr, steps, intervalValue, intervalUnit, anchorDayOfMonth, monthEndRule = 'CLAMP') {
+        if (steps === 0) return anchorDateStr;
+        const totalDelta = steps * intervalValue;
+        const parsed = this.parseDate(anchorDateStr);
+
+        if (intervalUnit === 'DAYS' || intervalUnit === 'WEEKS') {
+          const addDays = intervalUnit === 'WEEKS' ? totalDelta * 7 : totalDelta;
+          const dt = new Date(Date.UTC(parsed.year, parsed.month - 1, parsed.day));
+          dt.setUTCDate(dt.getUTCDate() + addDays);
+          return this.formatDate({
+            year: dt.getUTCFullYear(),
+            month: dt.getUTCMonth() + 1,
+            day: dt.getUTCDate()
+          });
+        }
+
+        const addMonths = intervalUnit === 'YEARS' ? totalDelta * 12 : totalDelta;
+        const targetTotalMonths = (parsed.year * 12 + (parsed.month - 1)) + addMonths;
+        const targetYear = Math.floor(targetTotalMonths / 12);
+        const targetMonth = (targetTotalMonths % 12) + 1;
+        const maxDay = this.daysInMonth(targetYear, targetMonth);
+
+        if (monthEndRule === 'ROLL' && anchorDayOfMonth > maxDay) {
+          const rolledMonths = targetTotalMonths + 1;
+          return this.formatDate({
+            year: Math.floor(rolledMonths / 12),
+            month: (rolledMonths % 12) + 1,
+            day: 1
+          });
+        }
+
+        const clampedDay = Math.min(anchorDayOfMonth, maxDay);
+        return this.formatDate({ year: targetYear, month: targetMonth, day: clampedDay });
+      },
+
+      getScheduledChargesForMonth(sub, targetYear, targetMonth, monthEndRule = 'CLAMP') {
+        if (sub.status === 'PAUSED' || sub.status === 'EXPIRED') {
+          return [];
+        }
+
+        const monthStart = this.formatDate({ year: targetYear, month: targetMonth, day: 1 });
+        const monthEnd = this.formatDate({
+          year: targetYear,
+          month: targetMonth,
+          day: this.daysInMonth(targetYear, targetMonth)
+        });
+
+        if (sub.startDate > monthEnd) {
+          return [];
+        }
+
+        const { intervalValue, intervalUnit } = this.normalizeInterval(
+          sub.billingCycleType,
+          sub.intervalValue,
+          sub.intervalUnit
+        );
+
+        const startParsed = this.parseDate(sub.startDate);
+        const nextParsed = this.parseDate(sub.nextBillingDate);
+        const nextMaxDay = this.daysInMonth(nextParsed.year, nextParsed.month);
+
+        const effectiveAnchorDay =
+          (intervalUnit === 'MONTHS' || intervalUnit === 'YEARS') &&
+          nextParsed.day === nextMaxDay &&
+          startParsed.day > nextParsed.day
+            ? startParsed.day
+            : nextParsed.day;
+
+        const matchingDates = [];
+
+        if (sub.nextBillingDate > monthEnd) {
+          let step = -1;
+          while (true) {
+            const candidate = this.advanceFromAnchor(
+              sub.nextBillingDate,
+              step,
+              intervalValue,
+              intervalUnit,
+              effectiveAnchorDay,
+              monthEndRule
+            );
+            if (candidate >= sub.startDate && candidate >= monthStart && candidate <= monthEnd) {
+              matchingDates.push(candidate);
+            }
+            if (candidate < monthStart || candidate < sub.startDate) {
+              break;
+            }
+            step--;
+          }
+          matchingDates.reverse();
+        } else {
+          let step = 0;
+          while (true) {
+            const candidate = this.advanceFromAnchor(
+              sub.nextBillingDate,
+              step,
+              intervalValue,
+              intervalUnit,
+              effectiveAnchorDay,
+              monthEndRule
+            );
+            if (candidate > monthEnd) break;
+            if (candidate >= sub.startDate && candidate >= monthStart) {
+              matchingDates.push(candidate);
+            }
+            step++;
+          }
+        }
+
+        return [...new Set(matchingDates)]
+          .filter(chargeDate => {
+            if (sub.cancellationDate && chargeDate > sub.cancellationDate) return false;
+            if (sub.accessEndDate && chargeDate > sub.accessEndDate) return false;
+            return true;
+          })
+          .map(chargeDate => ({
+            subscriptionId: sub.id,
+            subscriptionName: sub.name,
+            categoryId: sub.categoryId,
+            billingDate: chargeDate,
+            amountMinor: sub.amountMinor,
+            currency: sub.currency,
+            status: sub.status
+          }));
+      }
+    };
+
+    /**
+     * ========================================================================
+     * MODULE 3: INDEXEDDB REPOSITORY (Persistent Offline Storage)
+     * ========================================================================
+     */
+    const StorageRepo = {
+      dbName: 'SubTrackerOfflineDatabase_v1',
+      dbVersion: 1,
+      db: null,
+
+      open() {
+        return new Promise((resolve, reject) => {
+          const request = indexedDB.open(this.dbName, this.dbVersion);
+          request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains('categories')) {
+              const catStore = db.createObjectStore('categories', { keyPath: 'id', autoIncrement: true });
+              catStore.createIndex('name', 'name', { unique: true });
+            }
+            if (!db.objectStoreNames.contains('subscriptions')) {
+              const subStore = db.createObjectStore('subscriptions', { keyPath: 'id', autoIncrement: true });
+              subStore.createIndex('status', 'status', { unique: false });
+              subStore.createIndex('nextBillingDate', 'nextBillingDate', { unique: false });
+            }
+            if (!db.objectStoreNames.contains('payment_history')) {
+              const payStore = db.createObjectStore('payment_history', { keyPath: 'id', autoIncrement: true });
+              payStore.createIndex('subscriptionId', 'subscriptionId', { unique: false });
+              payStore.createIndex('paidAt', 'paidAt', { unique: false });
+            }
+          };
+          request.onsuccess = (e) => {
+            this.db = e.target.result;
+            resolve();
+          };
+          request.onerror = (e) => reject(e.target.error);
+        });
+      },
+
+      getAll(storeName) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readonly');
+          const req = tx.objectStore(storeName).getAll();
+          req.onsuccess = () => resolve(req.result || []);
+          req.onerror = () => reject(req.error);
+        });
+      },
+
+      getById(storeName, id) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readonly');
+          const req = tx.objectStore(storeName).get(Number(id));
+          req.onsuccess = () => resolve(req.result || null);
+          req.onerror = () => reject(req.error);
+        });
+      },
+
+      save(storeName, record) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readwrite');
+          const req = tx.objectStore(storeName).put(record);
+          req.onsuccess = () => resolve(req.result);
+          req.onerror = () => reject(req.error);
+        });
+      },
+
+      remove(storeName, id) {
+        return new Promise((resolve, reject) => {
+          const tx = this.db.transaction(storeName, 'readwrite');
+          const req = tx.objectStore(storeName).delete(Number(id));
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+      }
+    };
+
+    /**
+     * ========================================================================
+     * MODULE 4: MAIN APPLICATION CONTROLLER
+     * ========================================================================
+     */
+    const App = {
+      selectedYear: new Date().getFullYear(),
+      selectedMonth: new Date().getMonth() + 1,
+      activeDetailId: null,
+      categories: [],
+      subscriptions: [],
+      payments: [],
+      defaultCurrency: localStorage.getItem('sub_default_currency') || 'THB',
+      monthEndRule: localStorage.getItem('sub_month_end_rule') || 'CLAMP',
+
+      async init() {
+        PWA.init();
+        await StorageRepo.open();
+        document.getElementById('set-currency').value = this.defaultCurrency;
+        document.getElementById('set-month-rule').value = this.monthEndRule;
+        await this.refreshState();
+      },
+
+      async refreshState() {
+        this.categories = await StorageRepo.getAll('categories');
+        this.subscriptions = await StorageRepo.getAll('subscriptions');
+        this.payments = await StorageRepo.getAll('payment_history');
+
+        this.syncCategoryDropdowns();
+        this.renderDashboard();
+        this.renderList();
+        if (this.activeDetailId) {
+          await this.renderDetailView(this.activeDetailId);
+        }
+      },
+
+      navigate(viewName) {
+        document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+
+        const viewMap = {
+          dashboard: 'view-dashboard',
+          list: 'view-list',
+          form: 'view-form',
+          detail: 'view-detail',
+          settings: 'view-settings'
+        };
+        document.getElementById(viewMap[viewName]).classList.add('active');
+
+        const navMap = {
+          dashboard: 'nav-dashboard',
+          list: 'nav-list',
+          form: 'nav-form',
+          settings: 'nav-settings'
+        };
+        if (navMap[viewName]) {
+          document.getElementById(navMap[viewName]).classList.add('active');
+        }
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      },
+
+      showToast(message) {
+        const banner = document.getElementById('toast-banner');
+        banner.textContent = message;
+        banner.style.display = 'block';
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => {
+          banner.style.display = 'none';
+        }, 3000);
+      },
+
+      formatThaiDate(ymd) {
+        if (!ymd) return '-';
+        const [y, m, d] = ymd.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('th-TH', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric'
+        });
+      },
+
+      renderStatusBadge(status) {
+        const meta = {
+          ACTIVE: { icon: '●', label: 'ใช้งานอยู่ (ACTIVE)' },
+          TRIAL: { icon: '⏳', label: 'ทดลองใช้ (TRIAL)' },
+          PAUSED: { icon: '⏸', label: 'หยุดชั่วคราว (PAUSED)' },
+          CANCELLED: { icon: '✖', label: 'ยกเลิกแล้ว (CANCELLED)' },
+          EXPIRED: { icon: '⌛', label: 'หมดอายุ (EXPIRED)' }
+        }[status] || { icon: '•', label: status };
+        return `<span class="badge status-${status}">${meta.icon} ${meta.label}</span>`;
+      },
+
+      formatCycleDescription(sub) {
+        switch (sub.billingCycleType) {
+          case 'WEEKLY': return 'รายสัปดาห์';
+          case 'MONTHLY': return 'รายเดือน';
+          case 'QUARTERLY': return 'ทุก 3 เดือน';
+          case 'SEMI_ANNUALLY': return 'ทุก 6 เดือน';
+          case 'ANNUALLY': return 'รายปี';
+          case 'CUSTOM': {
+            const u = { DAYS: 'วัน', WEEKS: 'สัปดาห์', MONTHS: 'เดือน', YEARS: 'ปี' }[sub.intervalUnit] || sub.intervalUnit;
+            return `รอบกำหนดเอง: ทุก ${sub.intervalValue} ${u}`;
+          }
+          default: return sub.billingCycleType;
+        }
+      },
+
+      shiftMonth(delta) {
+        const total = (this.selectedYear * 12 + (this.selectedMonth - 1)) + delta;
+        this.selectedYear = Math.floor(total / 12);
+        this.selectedMonth = (total % 12) + 1;
+        this.renderDashboard();
+      },
+
+      jumpToTodayMonth() {
+        const now = new Date();
+        this.selectedYear = now.getFullYear();
+        this.selectedMonth = now.getMonth() + 1;
+        this.renderDashboard();
+      },
+
+      renderDashboard() {
+        const displayDate = new Date(this.selectedYear, this.selectedMonth - 1, 1);
+        document.getElementById('dash-month-title').textContent =
+          displayDate.toLocaleDateString('th-TH', { month: 'long', year: 'numeric' });
+
+        const monthStart = BillingCalculator.formatDate({ year: this.selectedYear, month: this.selectedMonth, day: 1 });
+        const monthEnd = BillingCalculator.formatDate({
+          year: this.selectedYear,
+          month: this.selectedMonth,
+          day: BillingCalculator.daysInMonth(this.selectedYear, this.selectedMonth)
+        });
+
+        const scheduledCharges = [];
+        for (const sub of this.subscriptions) {
+          const charges = BillingCalculator.getScheduledChargesForMonth(
+            sub,
+            this.selectedYear,
+            this.selectedMonth,
+            this.monthEndRule
+          );
+          scheduledCharges.push(...charges);
+        }
+        scheduledCharges.sort((a, b) => a.billingDate.localeCompare(b.billingDate));
+
+        const actualPayments = this.payments
+          .filter(p => p.paidAt >= monthStart && p.paidAt <= monthEnd)
+          .sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+
+        const paidSubIdsInMonth = new Set(actualPayments.map(p => Number(p.subscriptionId)));
+
+        const currencies = new Set([
+          ...scheduledCharges.map(c => c.currency),
+          ...actualPayments.map(p => p.currency)
+        ]);
+        if (currencies.size === 0) currencies.add(this.defaultCurrency);
+
+        const summaryEl = document.getElementById('dash-currency-summaries');
+        summaryEl.innerHTML = [...currencies].sort().map(curr => {
+          const expectedMinor = scheduledCharges
+            .filter(c => c.currency === curr)
+            .reduce((sum, item) => sum + item.amountMinor, 0);
+
+          const actualMinor = actualPayments
+            .filter(p => p.currency === curr)
+            .reduce((sum, item) => sum + item.amountPaidMinor, 0);
+
+          const count = scheduledCharges.filter(c => c.currency === curr).length;
+
+          return `
+            <div class="card">
+              <div class="section-header" style="margin-bottom:10px;">
+                <span style="font-weight:700;color:var(--accent-teal);">สรุปยอดประจำเดือน (${this.escape(curr)})</span>
+                <span style="font-size:0.82rem;color:var(--text-secondary);">ครบกำหนดในเดือนนี้ ${count} รายการ</span>
+              </div>
+              <div class="grid-2">
+                <div class="metric-box expected">
+                  <div class="metric-title">ยอดที่คาดว่าจะถูกเรียกเก็บจริงในเดือนนี้</div>
+                  <div class="metric-amount">${MoneyConverter.formatFromMinorUnits(expectedMinor, curr)}</div>
+                </div>
+                <div class="metric-box actual">
+                  <div class="metric-title">ยอดที่บันทึกจ่ายจริงในเดือนนี้</div>
+                  <div class="metric-amount">${MoneyConverter.formatFromMinorUnits(actualMinor, curr)}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        document.getElementById('dash-scheduled-title').textContent =
+          `กำหนดการเรียกเก็บในเดือนนี้ (${scheduledCharges.length} รายการ)`;
+
+        const schedContainer = document.getElementById('dash-scheduled-container');
+        if (scheduledCharges.length === 0) {
+          schedContainer.innerHTML = `
+            <div class="empty-box">
+              <h3>ไม่มีกำหนดเรียกเก็บค่าสมาชิกในเดือนนี้</h3>
+              <p>คุณสามารถกดปุ่ม "+ เพิ่มสมาชิก" เพื่อเริ่มต้นบันทึกข้อมูล หรือเลื่อนดูเดือนอื่น</p>
+            </div>
+          `;
+        } else {
+          schedContainer.innerHTML = scheduledCharges.map(item => {
+            const hasPaid = paidSubIdsInMonth.has(Number(item.subscriptionId));
+            const payBadge = hasPaid
+              ? `<span class="badge pay-badge-paid">✔ บันทึกชำระในเดือนนี้แล้ว</span>`
+              : `<span class="badge pay-badge-unpaid">🕒 ยังไม่ได้บันทึกชำระ</span>`;
+
+            return `
+              <div class="card-sub">
+                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                  <div style="cursor:pointer;" onclick="App.openDetail(${item.subscriptionId})">
+                    <div style="font-size:1.05rem;font-weight:700;">${this.escape(item.subscriptionName)}</div>
+                    <div style="font-size:0.83rem;color:var(--text-secondary);">
+                      กำหนดเรียกเก็บ: <strong>${this.formatThaiDate(item.billingDate)}</strong>
+                    </div>
+                  </div>
+                  <div style="text-align:right;">
+                    <div style="font-size:1.12rem;font-weight:700;color:var(--accent-teal);">
+                      ${MoneyConverter.formatFromMinorUnits(item.amountMinor, item.currency)}
+                    </div>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:8px;">
+                  <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                    ${this.renderStatusBadge(item.status)}
+                    ${payBadge}
+                  </div>
+                  <div style="display:flex;gap:6px;">
+                    <button class="btn btn-secondary btn-sm" onclick="App.openDetail(${item.subscriptionId})">รายละเอียด</button>
+                    <button class="btn btn-primary btn-sm" onclick="App.openRecordPaymentModal(${item.subscriptionId}, '${item.billingDate}')">บันทึกการชำระจริง</button>
+                  </div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+
+        document.getElementById('dash-actual-title').textContent =
+          `ประวัติการชำระเงินจริงในเดือนนี้ (${actualPayments.length} รายการ)`;
+
+        const actualContainer = document.getElementById('dash-actual-container');
+        if (actualPayments.length === 0) {
+          actualContainer.innerHTML = `<p style="color:var(--text-secondary);font-size:0.88rem;">ยังไม่มีรายการชำระเงินจริงที่บันทึกในเดือนนี้</p>`;
+        } else {
+          actualContainer.innerHTML = actualPayments.map(p => `
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border-color);">
+              <div>
+                <div style="font-weight:600;">${this.escape(p.subscriptionNameSnapshot)}</div>
+                <div style="font-size:0.8rem;color:var(--text-secondary);">
+                  ชำระจริงเมื่อ: ${this.formatThaiDate(p.paidAt)} ${p.note ? `• ${this.escape(p.note)}` : ''}
+                </div>
+              </div>
+              <div style="font-weight:700;color:var(--accent-blue);">
+                ${MoneyConverter.formatFromMinorUnits(p.amountPaidMinor, p.currency)}
+              </div>
+            </div>
+          `).join('');
+        }
+      },
+
+      renderList() {
+        const query = document.getElementById('list-search').value.trim().toLowerCase();
+        const sortBy = document.getElementById('list-sort').value;
+        const catFilter = document.getElementById('list-filter-category').value;
+        const statusFilter = document.getElementById('list-filter-status').value;
+
+        const catMap = Object.fromEntries(this.categories.map(c => [String(c.id), c.name]));
+
+        const filtered = this.subscriptions.filter(sub => {
+          if (query && !sub.name.toLowerCase().includes(query)) return false;
+          if (catFilter && String(sub.categoryId || '') !== catFilter) return false;
+          if (statusFilter && sub.status !== statusFilter) return false;
+          return true;
+        });
+
+        filtered.sort((a, b) => {
+          if (sortBy === 'NEXT_ASC') return a.nextBillingDate.localeCompare(b.nextBillingDate);
+          if (sortBy === 'NEXT_DESC') return b.nextBillingDate.localeCompare(a.nextBillingDate);
+          if (sortBy === 'PRICE_ASC') return a.amountMinor - b.amountMinor;
+          if (sortBy === 'PRICE_DESC') return b.amountMinor - a.amountMinor;
+          return 0;
+        });
+
+        const container = document.getElementById('list-items-container');
+        if (filtered.length === 0) {
+          container.innerHTML = `
+            <div class="empty-box">
+              <h3>ไม่พบรายการสมาชิก</h3>
+              <p>ไม่มีข้อมูลที่ตรงกับตัวกรอง หรือคุณยังไม่ได้เพิ่มรายการสมาชิก</p>
+              <button class="btn btn-primary" style="margin-top:12px;" onclick="App.openCreateForm()">+ เพิ่มสมาชิกใหม่</button>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = filtered.map(sub => {
+          const catName = sub.categoryId ? (catMap[String(sub.categoryId)] || 'ไม่ระบุหมวดหมู่') : 'ไม่ระบุหมวดหมู่';
+          return `
+            <div class="card" style="cursor:pointer;" onclick="App.openDetail(${sub.id})">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                <div>
+                  <div style="font-size:1.1rem;font-weight:700;">${this.escape(sub.name)}</div>
+                  <div style="font-size:0.82rem;color:var(--text-secondary);">หมวดหมู่: ${this.escape(catName)}</div>
+                </div>
+                <div style="text-align:right;">
+                  <div style="font-size:1.15rem;font-weight:700;color:var(--accent-teal);">
+                    ${MoneyConverter.formatFromMinorUnits(sub.amountMinor, sub.currency)}
+                  </div>
+                  <div style="font-size:0.8rem;color:var(--text-secondary);">${this.formatCycleDescription(sub)}</div>
+                </div>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;flex-wrap:wrap;gap:8px;">
+                ${this.renderStatusBadge(sub.status)}
+                <span style="font-size:0.84rem;color:var(--text-secondary);">
+                  วันเรียกเก็บครั้งถัดไป: <strong>${this.formatThaiDate(sub.nextBillingDate)}</strong>
+                </span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      },
+
+      resetListFilters() {
+        document.getElementById('list-search').value = '';
+        document.getElementById('list-sort').value = 'NEXT_ASC';
+        document.getElementById('list-filter-category').value = '';
+        document.getElementById('list-filter-status').value = '';
+        this.renderList();
+      },
+
+      openCreateForm() {
+        document.getElementById('form-header-title').textContent = 'เพิ่มสมาชิกใหม่';
+        document.getElementById('form-error-box').style.display = 'none';
+        document.getElementById('f-id').value = '';
+        document.getElementById('f-name').value = '';
+        document.getElementById('f-amount').value = '';
+        document.getElementById('f-currency').value = this.defaultCurrency;
+        document.getElementById('f-category').value = '';
+        document.getElementById('f-cycle-type').value = 'MONTHLY';
+        document.getElementById('f-interval-value').value = '1';
+        document.getElementById('f-interval-unit').value = 'MONTHS';
+        document.getElementById('f-custom-box').style.display = 'none';
+
+        const today = new Date().toISOString().slice(0, 10);
+        document.getElementById('f-start-date').value = today;
+        document.getElementById('f-status').value = 'ACTIVE';
+        document.getElementById('f-trial-end').value = '';
+        document.getElementById('f-cancel-date').value = '';
+        document.getElementById('f-access-end').value = '';
+        document.getElementById('f-note').value = '';
+
+        this.autoCalculateNextDate();
+        this.navigate('form');
+      },
+
+      async openEditForm(subId) {
+        const sub = await StorageRepo.getById('subscriptions', subId);
+        if (!sub) return;
+
+        document.getElementById('form-header-title').textContent = `แก้ไขข้อมูลสมาชิก: ${sub.name}`;
+        document.getElementById('form-error-box').style.display = 'none';
+        document.getElementById('f-id').value = sub.id;
+        document.getElementById('f-name').value = sub.name;
+        document.getElementById('f-amount').value = MoneyConverter.toPlainDecimalString(sub.amountMinor);
+        document.getElementById('f-currency').value = sub.currency;
+        document.getElementById('f-category').value = sub.categoryId || '';
+        document.getElementById('f-cycle-type').value = sub.billingCycleType;
+        document.getElementById('f-interval-value').value = sub.intervalValue;
+        document.getElementById('f-interval-unit').value = sub.intervalUnit;
+        document.getElementById('f-custom-box').style.display =
+          sub.billingCycleType === 'CUSTOM' ? 'block' : 'none';
+
+        document.getElementById('f-start-date').value = sub.startDate;
+        document.getElementById('f-next-date').value = sub.nextBillingDate;
+        document.getElementById('f-status').value = sub.status;
+        document.getElementById('f-trial-end').value = sub.trialEndDate || '';
+        document.getElementById('f-cancel-date').value = sub.cancellationDate || '';
+        document.getElementById('f-access-end').value = sub.accessEndDate || '';
+        document.getElementById('f-note').value = sub.note || '';
+
+        this.navigate('form');
+      },
+
+      handleCycleTypeChange() {
+        const type = document.getElementById('f-cycle-type').value;
+        document.getElementById('f-custom-box').style.display = type === 'CUSTOM' ? 'block' : 'none';
+        this.autoCalculateNextDate();
+      },
+
+      autoCalculateNextDate() {
+        const startDate = document.getElementById('f-start-date').value;
+        if (!startDate) return;
+        const cycleType = document.getElementById('f-cycle-type').value;
+        const customVal = document.getElementById('f-interval-value').value;
+        const customUnit = document.getElementById('f-interval-unit').value;
+
+        const { intervalValue, intervalUnit } = BillingCalculator.normalizeInterval(cycleType, customVal, customUnit);
+        const anchorDay = BillingCalculator.parseDate(startDate).day;
+        const nextDate = BillingCalculator.advanceFromAnchor(
+          startDate,
+          1,
+          intervalValue,
+          intervalUnit,
+          anchorDay,
+          this.monthEndRule
+        );
+        document.getElementById('f-next-date').value = nextDate;
+      },
+
+      async handleSubscriptionSubmit(event) {
+        event.preventDefault();
+        const errorBox = document.getElementById('form-error-box');
+        errorBox.style.display = 'none';
+
+        const idVal = document.getElementById('f-id').value;
+        const name = document.getElementById('f-name').value.trim();
+        const amountStr = document.getElementById('f-amount').value;
+        const currency = document.getElementById('f-currency').value;
+        const categoryId = document.getElementById('f-category').value;
+        const cycleType = document.getElementById('f-cycle-type').value;
+        const customVal = document.getElementById('f-interval-value').value;
+        const customUnit = document.getElementById('f-interval-unit').value;
+        const startDate = document.getElementById('f-start-date').value;
+        const nextBillingDate = document.getElementById('f-next-date').value;
+        const status = document.getElementById('f-status').value;
+        const trialEndDate = document.getElementById('f-trial-end').value;
+        const cancellationDate = document.getElementById('f-cancel-date').value;
+        const accessEndDate = document.getElementById('f-access-end').value;
+        const note = document.getElementById('f-note').value.trim();
+
+        if (!name) return this.showFormError('กรุณากรอกชื่อบริการ');
+        const amountMinor = MoneyConverter.parseToMinorUnits(amountStr);
+        if (amountMinor === null || amountMinor < 0) {
+          return this.showFormError('กรุณากรอกราคาที่ถูกต้อง (ตัวเลขไม่ติดลบ ทศนิยมไม่เกิน 2 ตำแหน่ง)');
+        }
+        if (cycleType === 'CUSTOM') {
+          const v = parseInt(customVal, 10);
+          if (!Number.isFinite(v) || v < 1 || v > 999) {
+            return this.showFormError('รอบกำหนดเองต้องมีค่าตั้งแต่ 1 ถึง 999');
+          }
+        }
+        if (!startDate || !nextBillingDate) {
+          return this.showFormError('กรุณาระบุวันเริ่มต้นและวันเรียกเก็บครั้งถัดไป');
+        }
+        if (nextBillingDate < startDate) {
+          return this.showFormError('วันเรียกเก็บครั้งถัดไปต้องไม่ก่อนวันเริ่มต้นสมัคร');
+        }
+
+        const { intervalValue, intervalUnit } = BillingCalculator.normalizeInterval(
+          cycleType,
+          customVal,
+          customUnit
+        );
+
+        const nowIso = new Date().toISOString();
+        const entity = {
+          name,
+          categoryId: categoryId ? Number(categoryId) : null,
+          amountMinor,
+          currency,
+          billingCycleType: cycleType,
+          intervalValue,
+          intervalUnit,
+          startDate,
+          nextBillingDate,
+          status,
+          trialEndDate: trialEndDate || null,
+          cancellationDate: cancellationDate || null,
+          accessEndDate: accessEndDate || null,
+          note: note || null,
+          createdAt: nowIso,
+          updatedAt: nowIso
+        };
+
+        if (idVal) {
+          const existing = await StorageRepo.getById('subscriptions', Number(idVal));
+          entity.id = Number(idVal);
+          entity.createdAt = existing ? existing.createdAt : nowIso;
+        }
+
+        const savedId = await StorageRepo.save('subscriptions', entity);
+        await this.refreshState();
+        this.showToast(idVal ? 'บันทึกการแก้ไขสมาชิกเรียบร้อยแล้ว' : 'เพิ่มสมาชิกใหม่เรียบร้อยแล้ว');
+        this.openDetail(savedId);
+      },
+
+      showFormError(msg) {
+        const box = document.getElementById('form-error-box');
+        box.textContent = msg;
+        box.style.display = 'block';
+      },
+
+      async openDetail(subId) {
+        this.activeDetailId = Number(subId);
+        await this.renderDetailView(this.activeDetailId);
+        this.navigate('detail');
+      },
+
+      async renderDetailView(subId) {
+        const sub = await StorageRepo.getById('subscriptions', subId);
+        const container = document.getElementById('detail-container');
+        if (!sub) {
+          container.innerHTML = `<div class="empty-box"><h3>ไม่พบข้อมูลสมาชิก</h3></div>`;
+          return;
+        }
+
+        const category = this.categories.find(c => c.id === sub.categoryId);
+        const historyList = this.payments
+          .filter(p => Number(p.subscriptionId) === Number(sub.id))
+          .sort((a, b) => b.paidAt.localeCompare(a.paidAt));
+
+        container.innerHTML = `
+          <div class="card">
+            <div class="section-header">
+              <button class="btn btn-secondary btn-sm" onclick="App.navigate('list')">&larr; กลับหน้ารายการ</button>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-secondary btn-sm" onclick="App.openEditForm(${sub.id})">แก้ไขข้อมูล</button>
+                <button class="btn btn-danger btn-sm" onclick="App.confirmDeleteSub(${sub.id})">ลบสมาชิก</button>
+              </div>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin:12px 0;">
+              <div>
+                <h2 style="font-size:1.4rem;">${this.escape(sub.name)}</h2>
+                <div style="margin-top:6px;">${this.renderStatusBadge(sub.status)}</div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-size:1.55rem;font-weight:700;color:var(--accent-teal);">
+                  ${MoneyConverter.formatFromMinorUnits(sub.amountMinor, sub.currency)}
+                </div>
+                <div style="font-size:0.85rem;color:var(--text-secondary);">${this.formatCycleDescription(sub)}</div>
+              </div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid var(--border-color);margin:14px 0;">
+
+            <div class="grid-3" style="font-size:0.88rem;">
+              <div><span style="color:var(--text-secondary);">หมวดหมู่:</span><br><strong>${this.escape(category ? category.name : 'ไม่ระบุหมวดหมู่')}</strong></div>
+              <div><span style="color:var(--text-secondary);">วันเริ่มต้นสมัคร:</span><br><strong>${this.formatThaiDate(sub.startDate)}</strong></div>
+              <div><span style="color:var(--text-secondary);">วันเรียกเก็บครั้งถัดไป:</span><br><strong style="color:var(--accent-teal);">${this.formatThaiDate(sub.nextBillingDate)}</strong></div>
+              <div><span style="color:var(--text-secondary);">สิ้นสุดทดลองใช้:</span><br><strong>${this.formatThaiDate(sub.trialEndDate)}</strong></div>
+              <div><span style="color:var(--text-secondary);">วันที่ยกเลิก:</span><br><strong>${this.formatThaiDate(sub.cancellationDate)}</strong></div>
+              <div><span style="color:var(--text-secondary);">สิ้นสุดสิทธิ์ใช้งาน:</span><br><strong>${this.formatThaiDate(sub.accessEndDate)}</strong></div>
+            </div>
+
+            ${sub.note ? `<div style="margin-top:12px;font-size:0.88rem;"><span style="color:var(--text-secondary);">หมายเหตุ:</span> ${this.escape(sub.note)}</div>` : ''}
+
+            <div style="margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;">
+              <button class="btn btn-primary" onclick="App.openRecordPaymentModal(${sub.id})">+ บันทึกการชำระเงินจริง</button>
+              <button class="btn btn-secondary" onclick="App.manualAdvanceNextBilling(${sub.id})">⏩ เลื่อนวันเรียกเก็บไปรอบถัดไป (Manual Advance)</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="section-header">
+              <div class="section-title">ประวัติการชำระเงินทั้งหมด (${historyList.length} รายการ)</div>
+            </div>
+            ${
+              historyList.length === 0
+                ? `<div class="empty-box">
+                     <h3>ยังไม่มีประวัติการชำระเงินสำหรับบริการนี้</h3>
+                     <p>ระบบจะไม่สร้างประวัติการชำระเงินอัตโนมัติเมื่อเพิ่มสมาชิก กดปุ่ม "+ บันทึกการชำระเงินจริง" เมื่อคุณได้ชำระเงินแล้ว</p>
+                   </div>`
+                : historyList.map(p => `
+                    <div class="card-sub" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+                      <div>
+                        <div style="font-size:1.08rem;font-weight:700;color:var(--accent-blue);">
+                          ${MoneyConverter.formatFromMinorUnits(p.amountPaidMinor, p.currency)}
+                        </div>
+                        <div style="font-size:0.82rem;color:var(--text-secondary);">
+                          ชำระเมื่อ: <strong>${this.formatThaiDate(p.paidAt)}</strong>${p.note ? ` • หมายเหตุ: ${this.escape(p.note)}` : ''}
+                        </div>
+                      </div>
+                      <div style="display:flex;gap:6px;">
+                        <button class="btn btn-secondary btn-sm" onclick="App.openEditPaymentModal(${p.id})">แก้ไข</button>
+                        <button class="btn btn-danger btn-sm" onclick="App.confirmDeletePayment(${p.id})">ลบ</button>
+                      </div>
+                    </div>
+                  `).join('')
+            }
+          </div>
+        `;
+      },
+
+      async manualAdvanceNextBilling(subId) {
+        const sub = await StorageRepo.getById('subscriptions', subId);
+        if (!sub) return;
+        const anchorDay = BillingCalculator.parseDate(sub.startDate).day;
+        sub.nextBillingDate = BillingCalculator.advanceFromAnchor(
+          sub.nextBillingDate,
+          1,
+          sub.intervalValue,
+          sub.intervalUnit,
+          anchorDay,
+          this.monthEndRule
+        );
+        sub.updatedAt = new Date().toISOString();
+        await StorageRepo.save('subscriptions', sub);
+        await this.refreshState();
+        this.showToast(`เลื่อนวันเรียกเก็บถัดไปเป็น ${this.formatThaiDate(sub.nextBillingDate)} แล้ว`);
+      },
+
+      async openRecordPaymentModal(subId, suggestedDate = null) {
+        const sub = await StorageRepo.getById('subscriptions', subId);
+        if (!sub) return;
+        document.getElementById('pay-modal-title').textContent = `บันทึกการชำระเงิน: ${sub.name}`;
+        document.getElementById('p-id').value = '';
+        document.getElementById('p-sub-id').value = sub.id;
+        document.getElementById('p-amount').value = MoneyConverter.toPlainDecimalString(sub.amountMinor);
+        document.getElementById('p-currency').value = sub.currency;
+        document.getElementById('p-date').value = suggestedDate || new Date().toISOString().slice(0, 10);
+        document.getElementById('p-note').value = '';
+        document.getElementById('modal-payment').classList.add('open');
+      },
+
+      async openEditPaymentModal(paymentId) {
+        const pay = await StorageRepo.getById('payment_history', paymentId);
+        if (!pay) return;
+        document.getElementById('pay-modal-title').textContent = 'แก้ไขรายการชำระเงิน';
+        document.getElementById('p-id').value = pay.id;
+        document.getElementById('p-sub-id').value = pay.subscriptionId || '';
+        document.getElementById('p-amount').value = MoneyConverter.toPlainDecimalString(pay.amountPaidMinor);
+        document.getElementById('p-currency').value = pay.currency;
+        document.getElementById('p-date').value = pay.paidAt;
+        document.getElementById('p-note').value = pay.note || '';
+        document.getElementById('modal-payment').classList.add('open');
+      },
+
+      async savePaymentHistory() {
+        const payId = document.getElementById('p-id').value;
+        const subId = document.getElementById('p-sub-id').value;
+        const amountStr = document.getElementById('p-amount').value;
+        const currency = document.getElementById('p-currency').value;
+        const paidAt = document.getElementById('p-date').value;
+        const note = document.getElementById('p-note').value.trim();
+
+        const amountMinor = MoneyConverter.parseToMinorUnits(amountStr);
+        if (amountMinor === null || amountMinor < 0 || !paidAt) {
+          alert('กรุณาระบุจำนวนเงินและวันที่ชำระให้ถูกต้อง');
+          return;
+        }
+
+        const nowIso = new Date().toISOString();
+        let subName = 'บริการที่ถูกลบ';
+        if (subId) {
+          const sub = await StorageRepo.getById('subscriptions', Number(subId));
+          if (sub) subName = sub.name;
+        }
+
+        const record = {
+          subscriptionId: subId ? Number(subId) : null,
+          subscriptionNameSnapshot: subName,
+          amountPaidMinor: amountMinor,
+          currency,
+          paidAt,
+          note: note || null,
+          createdAt: nowIso,
+          updatedAt: nowIso
+        };
+
+        if (payId) {
+          const existing = await StorageRepo.getById('payment_history', Number(payId));
+          record.id = Number(payId);
+          record.subscriptionNameSnapshot = existing ? existing.subscriptionNameSnapshot : subName;
+          record.createdAt = existing ? existing.createdAt : nowIso;
+        }
+
+        await StorageRepo.save('payment_history', record);
+        this.closeModal('modal-payment');
+        await this.refreshState();
+        this.showToast('บันทึกประวัติการชำระเงินแล้ว');
+      },
+
+      confirmDeleteSub(subId) {
+        const sub = this.subscriptions.find(s => s.id === Number(subId));
+        if (!sub) return;
+        document.getElementById('confirm-header').textContent = `ยืนยันการลบสมาชิก "${sub.name}"?`;
+        document.getElementById('confirm-body').textContent =
+          'รายการสมาชิกนี้จะถูกลบออกจากระบบ แต่ประวัติการชำระเงินที่เคยบันทึกไว้จะยังคงถูกเก็บรักษาไว้เพื่อให้ยอดจ่ายจริงย้อนหลังไม่คลาดเคลื่อน';
+        document.getElementById('confirm-yes-btn').onclick = async () => {
+          await StorageRepo.remove('subscriptions', Number(subId));
+          this.activeDetailId = null;
+          this.closeModal('modal-confirm');
+          await this.refreshState();
+          this.navigate('list');
+          this.showToast('ลบรายการสมาชิกเรียบร้อยแล้ว');
+        };
+        document.getElementById('modal-confirm').classList.add('open');
+      },
+
+      confirmDeletePayment(paymentId) {
+        document.getElementById('confirm-header').textContent = 'ยืนยันการลบประวัติการชำระเงิน?';
+        document.getElementById('confirm-body').textContent =
+          'ต้องการลบรายการชำระเงินที่บันทึกไว้นี้ออกจากประวัติใช่หรือไม่?';
+        document.getElementById('confirm-yes-btn').onclick = async () => {
+          await StorageRepo.remove('payment_history', Number(paymentId));
+          this.closeModal('modal-confirm');
+          await this.refreshState();
+          this.showToast('ลบรายการชำระเงินเรียบร้อยแล้ว');
+        };
+        document.getElementById('modal-confirm').classList.add('open');
+      },
+
+      openCategoryModal() {
+        document.getElementById('cat-input-name').value = '';
+        document.getElementById('modal-category').classList.add('open');
+      },
+
+      async createNewCategory() {
+        const name = document.getElementById('cat-input-name').value.trim();
+        if (!name) return;
+        try {
+          const newId = await StorageRepo.save('categories', {
+            name,
+            createdAt: new Date().toISOString()
+          });
+          this.closeModal('modal-category');
+          await this.refreshState();
+          document.getElementById('f-category').value = String(newId);
+          this.showToast(`สร้างหมวดหมู่ "${name}" สำเร็จ`);
+        } catch (e) {
+          alert('ชื่อหมวดหมู่นี้มีอยู่แล้ว');
+        }
+      },
+
+      syncCategoryDropdowns() {
+        const listFilter = document.getElementById('list-filter-category');
+        const formSelect = document.getElementById('f-category');
+        const prevFilter = listFilter.value;
+        const prevForm = formSelect.value;
+
+        listFilter.innerHTML = `<option value="">กรองหมวดหมู่: ทุกหมวดหมู่</option>` +
+          this.categories.map(c => `<option value="${c.id}">${this.escape(c.name)}</option>`).join('');
+
+        formSelect.innerHTML = `<option value="">-- ไม่ระบุหมวดหมู่ --</option>` +
+          this.categories.map(c => `<option value="${c.id}">${this.escape(c.name)}</option>`).join('');
+
+        listFilter.value = prevFilter;
+        formSelect.value = prevForm;
+      },
+
+      closeModal(modalId) {
+        document.getElementById(modalId).classList.remove('open');
+      },
+
+      updateDefaultCurrency(curr) {
+        this.defaultCurrency = curr;
+        localStorage.setItem('sub_default_currency', curr);
+        this.renderDashboard();
+        this.showToast(`เปลี่ยนสกุลเงินเริ่มต้นเป็น ${curr} แล้ว`);
+      },
+
+      updateMonthEndRule(rule) {
+        this.monthEndRule = rule;
+        localStorage.setItem('sub_month_end_rule', rule);
+        this.renderDashboard();
+        this.showToast('อัปเดตกติกาวันที่ 29–31 เรียบร้อยแล้ว');
+      },
+
+      exportCsvBackup() {
+        const BOM = '\uFEFF';
+        const catMap = Object.fromEntries(this.categories.map(c => [String(c.id), c.name]));
+        const esc = (v) => {
+          const s = String(v ?? '').replace(/"/g, '""');
+          return /[",\n]/.test(s) ? `"${s}"` : s;
+        };
+
+        const rows = [];
+        rows.push('# [SUBSCRIPTIONS]');
+        rows.push('id,name,category,amount,currency,billing_cycle_type,interval_value,interval_unit,start_date,next_billing_date,status,trial_end_date,cancellation_date,access_end_date,note,created_at,updated_at');
+
+        for (const s of this.subscriptions) {
+          rows.push([
+            s.id,
+            esc(s.name),
+            esc(s.categoryId ? catMap[String(s.categoryId)] : ''),
+            MoneyConverter.toPlainDecimalString(s.amountMinor),
+            esc(s.currency),
+            s.billingCycleType,
+            s.intervalValue,
+            s.intervalUnit,
+            s.startDate,
+            s.nextBillingDate,
+            s.status,
+            s.trialEndDate || '',
+            s.cancellationDate || '',
+            s.accessEndDate || '',
+            esc(s.note || ''),
+            s.createdAt,
+            s.updatedAt
+          ].join(','));
+        }
+
+        rows.push('');
+        rows.push('# [PAYMENT_HISTORY]');
+        rows.push('id,subscription_id,subscription_name_snapshot,amount_paid,currency,paid_at,note,created_at,updated_at');
+
+        for (const p of this.payments) {
+          rows.push([
+            p.id,
+            p.subscriptionId ?? '',
+            esc(p.subscriptionNameSnapshot),
+            MoneyConverter.toPlainDecimalString(p.amountPaidMinor),
+            esc(p.currency),
+            p.paidAt,
+            esc(p.note || ''),
+            p.createdAt,
+            p.updatedAt
+          ].join(','));
+        }
+
+        const blob = new Blob([BOM + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `subscription_tracker_backup_${new Date().toISOString().slice(0, 10)}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        this.showToast('ดาวน์โหลดไฟล์ CSV สำเร็จแล้ว');
+      },
+
+      runSelfDiagnostics() {
+        const logs = [];
+        const assert = (cond, title) => {
+          if (!cond) throw new Error(`FAILED: ${title}`);
+          logs.push(`✔ PASS: ${title}`);
+        };
+
+        try {
+          const subMonthly = {
+            id: 1, name: 'Sub A', amountMinor: 30000, currency: 'THB',
+            billingCycleType: 'MONTHLY', intervalValue: 1, intervalUnit: 'MONTHS',
+            startDate: '2026-01-10', nextBillingDate: '2026-01-10', status: 'ACTIVE'
+          };
+          const subAnnual = {
+            id: 2, name: 'Sub B', amountMinor: 120000, currency: 'THB',
+            billingCycleType: 'ANNUALLY', intervalValue: 1, intervalUnit: 'YEARS',
+            startDate: '2026-01-15', nextBillingDate: '2026-01-15', status: 'ACTIVE'
+          };
+
+          const janCharges = [
+            ...BillingCalculator.getScheduledChargesForMonth(subMonthly, 2026, 1),
+            ...BillingCalculator.getScheduledChargesForMonth(subAnnual, 2026, 1)
+          ];
+          const janTotal = janCharges.reduce((s, c) => s + c.amountMinor, 0);
+          assert(janTotal === 150000, 'เดือนมกราคม: สมาชิก A (300/เดือน) + สมาชิก B (1,200/ปี) แสดงยอดคาดการณ์ 1,500.00 บาท');
+
+          const febCharges = [
+            ...BillingCalculator.getScheduledChargesForMonth(subMonthly, 2026, 2),
+            ...BillingCalculator.getScheduledChargesForMonth(subAnnual, 2026, 2)
+          ];
+          const febTotal = febCharges.reduce((s, c) => s + c.amountMinor, 0);
+          assert(febTotal === 30000, 'เดือนกุมภาพันธ์: แสดงเฉพาะสมาชิก A ยอดคาดการณ์ 300.00 บาท');
+
+          const sub31 = {
+            id: 3, name: 'EndOfMonth Sub', amountMinor: 19900, currency: 'THB',
+            billingCycleType: 'MONTHLY', intervalValue: 1, intervalUnit: 'MONTHS',
+            startDate: '2026-01-31', nextBillingDate: '2026-01-31', status: 'ACTIVE'
+          };
+          const feb31 = BillingCalculator.getScheduledChargesForMonth(sub31, 2026, 2, 'CLAMP');
+          const mar31 = BillingCalculator.getScheduledChargesForMonth(sub31, 2026, 3, 'CLAMP');
+          assert(feb31.length === 1 && feb31[0].billingDate === '2026-02-28', 'กติกาวันที่ 31 ม.ค. -> ก.พ. 2026 ปัดลงเป็น 2026-02-28');
+          assert(mar31.length === 1 && mar31[0].billingDate === '2026-03-31', 'กติกาวันที่ 31 ม.ค. -> มี.ค. 2026 ดีดกลับมาเป็น 2026-03-31');
+
+          const sub45d = {
+            id: 4, name: 'Custom 45 Days', amountMinor: 50000, currency: 'THB',
+            billingCycleType: 'CUSTOM', intervalValue: 45, intervalUnit: 'DAYS',
+            startDate: '2026-01-01', nextBillingDate: '2026-01-01', status: 'ACTIVE'
+          };
+          const feb45 = BillingCalculator.getScheduledChargesForMonth(sub45d, 2026, 2);
+          const mar45 = BillingCalculator.getScheduledChargesForMonth(sub45d, 2026, 3);
+          const apr45 = BillingCalculator.getScheduledChargesForMonth(sub45d, 2026, 4);
+          assert(feb45.length === 1 && feb45[0].billingDate === '2026-02-15', 'รอบกำหนดเองทุก 45 วัน -> งวดถัดไปตรงกับ 15 ก.พ.');
+          assert(mar45.length === 0 && apr45.length === 1 && apr45[0].billingDate === '2026-04-01', 'รอบกำหนดเองทุก 45 วัน -> ข้ามเดือนมีนาคม ไปตกวันที่ 1 เม.ย.');
+
+          assert(MoneyConverter.parseToMinorUnits('0.1') + MoneyConverter.parseToMinorUnits('0.2') === 30, 'การคำนวณเงินด้วยหน่วยย่อย Integer: 0.10 + 0.20 === 0.30 แม่นยำ 100%');
+
+          logs.push('\nสรุปผล: ผ่านการทดสอบ Acceptance Criteria ทั้งหมดเรียบร้อย!');
+        } catch (err) {
+          logs.push(`\n❌ ${err.message}`);
+        }
+
+        const out = document.getElementById('test-output');
+        out.textContent = logs.join('\n');
+        out.style.display = 'block';
+      },
+
+      escape(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;');
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => App.init());
+  </script>
+</body>
+</html>
